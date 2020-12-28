@@ -1,0 +1,128 @@
+package main
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+)
+
+type Coordinate struct {
+	i int
+	j int
+	k int
+}
+
+type Grid map[Coordinate]byte
+
+func readStdin() (input Grid, err error) {
+	input = make(Grid)
+
+	scanner := bufio.NewScanner(os.Stdin)
+	j := 0
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		for k, b := range line {
+			input[Coordinate{0, j, k}] = b
+		}
+		j++
+	}
+
+	return
+}
+
+func (t Grid) Get(i, j, k int) byte {
+	return t[Coordinate{i, j, k}]
+}
+
+func (t Grid) Copy() (r Grid) {
+	r = make(Grid, len(t))
+	for x, y := range t {
+		r[x] = y
+	}
+	return
+}
+
+func countActive(t Grid, coord Coordinate) (result int) {
+	for iDelt := -1; iDelt <= 1; iDelt++ {
+		for jDelt := -1; jDelt <= 1; jDelt++ {
+			for kDelt := -1; kDelt <= 1; kDelt++ {
+				if iDelt == 0 && jDelt == 0 && kDelt == 0 {
+					continue
+				}
+				if t.Get(coord.i+iDelt, coord.j+jDelt, coord.k+kDelt) == '#' {
+					result++
+				}
+			}
+		}
+	}
+	return
+}
+
+func nextVal(count int, b byte) (next byte) {
+	cur := b == '#'
+	if cur {
+		if count == 2 || count == 3 {
+			next = '#'
+		} else {
+			next = '.'
+		}
+	} else {
+		if count == 3 {
+			next = '#'
+		} else {
+			next = '.'
+		}
+	}
+	return
+}
+
+func iterate(grid Grid) (nextGrid Grid) {
+	nextGrid = grid.Copy()
+
+	for coord, b := range grid {
+		cnt := countActive(grid, coord)
+		nextGrid[coord] = nextVal(cnt, b)
+
+		for iDelt := -1; iDelt <= 1; iDelt++ {
+			for jDelt := -1; jDelt <= 1; jDelt++ {
+				for kDelt := -1; kDelt <= 1; kDelt++ {
+					if iDelt == 0 && jDelt == 0 && kDelt == 0 {
+						continue
+					}
+					neigh := Coordinate{coord.i + iDelt, coord.j + jDelt, coord.k + kDelt}
+					if _, found := grid[neigh]; found {
+						continue
+					}
+					cnt := countActive(grid, neigh)
+					nextGrid[neigh] = nextVal(cnt, 0)
+				}
+			}
+		}
+	}
+	return
+}
+
+func solve(grid Grid) (result int) {
+	iterCount := 6
+
+	for iter := 0; iter < iterCount; iter++ {
+		grid = iterate(grid)
+	}
+
+	for _, b := range grid {
+		if b == '#' {
+			result++
+		}
+	}
+
+	return
+}
+
+func main() {
+	input, err := readStdin()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(solve(input))
+}

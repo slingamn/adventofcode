@@ -1,0 +1,130 @@
+package main
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"regexp"
+	"strconv"
+	"strings"
+)
+
+func parseInt(str string) int {
+	i, err := strconv.Atoi(str)
+	if err != nil {
+		panic(err)
+	}
+	return i
+}
+
+var (
+	number = regexp.MustCompile(`^[0-9]+`)
+)
+
+func trimSpace(str string) (remaining string) {
+	return strings.TrimLeft(str, " ")
+}
+
+func atEnd(str string) bool {
+	return len(str) == 0 || str[0] == ')'
+}
+
+func consumeExpr(remaining string) (firstOperand int, rest string) {
+	digits := number.FindString(remaining)
+	if digits != "" {
+		firstOperand = parseInt(digits)
+		remaining = remaining[len(digits):]
+	} else {
+		if remaining[0] != '(' {
+			panic(remaining)
+		}
+		firstOperand, remaining = evaluate(remaining[1:])
+		remaining = trimSpace(remaining)
+		if remaining != "" {
+			if remaining[0] != ')' {
+				panic(remaining)
+			} else {
+				remaining = remaining[1:]
+			}
+		}
+	}
+	return firstOperand, remaining
+}
+
+func evaluate(expr string) (result int, remaining string) {
+	remaining = trimSpace(expr)
+
+	result, remaining = consumeExpr(remaining)
+	remaining = trimSpace(remaining)
+	if atEnd(remaining) {
+		return
+	}
+
+	// an expression in part b is a product of sums;
+	// maintain separate accumulators for the overall product
+	// and the current sum
+	var productAccumulator, sumAccumulator int
+	sumAccumulator = result
+	productAccumulator = 1
+	isProduct := false
+
+	for {
+		var operand int
+		operator := remaining[0]
+		remaining = remaining[1:]
+
+		remaining = trimSpace(remaining)
+		operand, remaining = consumeExpr(remaining)
+
+		switch operator {
+		case '+':
+			sumAccumulator += operand
+		case '*':
+			productAccumulator *= sumAccumulator
+			sumAccumulator = operand
+			isProduct = true
+		default:
+			panic(operator)
+		}
+
+		remaining  = trimSpace(remaining)
+		if atEnd(remaining) {
+			break
+		}
+	}
+
+	if isProduct {
+		// XXX process the final multiplicand from sumAccumulator
+		result = productAccumulator * sumAccumulator
+	} else {
+		result = sumAccumulator
+	}
+	return
+}
+
+func solve(input []string) (result int, err error) {
+	for _, i := range input {
+		val, remaining := evaluate(i)
+		if remaining != "" {
+			panic(remaining)
+		}
+		result += val
+	}
+	return
+}
+
+func main() {
+	var input []string
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		line := scanner.Text()
+		input = append(input, line)
+	}
+
+	solution, err := solve(input)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(solution)
+}
