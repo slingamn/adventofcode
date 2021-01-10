@@ -98,7 +98,26 @@ func readStdin() (result int, err error) {
 
 	var nearby []Ticket
 	for scanner.Scan() {
-		nearby = append(nearby, ParseTicket(scanner.Text()))
+		ticket := ParseTicket(scanner.Text())
+
+		// only consider tickets where each value is valid for some field
+		valid := true
+		for _, val := range ticket {
+			field_valid := false
+			for _, constraint := range fields {
+				if constraint.Satisfies(val) {
+					field_valid = true
+					break
+				}
+			}
+			if !field_valid {
+				valid = false
+				break
+			}
+		}
+		if valid {
+			nearby = append(nearby, ParseTicket(scanner.Text()))
+		}
 	}
 
 	// adjacencyMatrix[i][j] = "is field i compatible with position j?"
